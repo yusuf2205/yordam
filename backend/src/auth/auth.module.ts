@@ -22,6 +22,9 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],
-  exports: [AuthService, JwtModule],
+  // PassportModule is exported too: JwtAuthGuard (AuthGuard('jwt')) needs it
+  // wherever it's applied via @UseGuards, so every module using the guard
+  // imports AuthModule rather than re-registering PassportModule itself.
+  exports: [AuthService, JwtModule, PassportModule],
 })
 export class AuthModule {}
