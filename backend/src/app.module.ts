@@ -22,10 +22,14 @@ import { AiModule } from './ai/ai.module.js';
         password: configService.get<string>('DB_PASSWORD', 'yordam'),
         database: configService.get<string>('DB_NAME', 'yordam'),
         autoLoadEntities: true,
-        // MVP only: lets TypeORM create/update tables from entities without
-        // hand-written migrations. Turn this off and switch to real
-        // migrations before there is production data to lose.
+        // Dev convenience: auto-create/update tables from entities. Off in
+        // production, where the migrations below are the source of truth
+        // instead (see src/migrations and package.json's typeorm scripts).
         synchronize: configService.get<string>('NODE_ENV', 'development') !== 'production',
+        migrations: ['dist/migrations/*.js'],
+        // Applies any pending migrations on boot in production, so a fresh
+        // deployment ends up with the right schema without a manual step.
+        migrationsRun: configService.get<string>('NODE_ENV', 'development') === 'production',
       }),
     }),
     UsersModule,
