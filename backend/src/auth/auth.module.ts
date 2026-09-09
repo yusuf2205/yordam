@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -7,10 +7,16 @@ import { AuthService } from './auth.service.js';
 import { AuthController } from './auth.controller.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 
+// Global: JwtAuthGuard (AuthGuard('jwt')) is applied via @UseGuards in other
+// feature modules (tasks, ai, ...) and needs PassportModule's providers
+// (AuthModuleOptions) wherever it's instantiated. Registering PassportModule
+// with an explicit strategy here and making this module global means every
+// module gets that provider without each one re-importing AuthModule.
+@Global()
 @Module({
   imports: [
     UsersModule,
-    PassportModule,
+    PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -22,9 +28,6 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],
-  // PassportModule is exported too: JwtAuthGuard (AuthGuard('jwt')) needs it
-  // wherever it's applied via @UseGuards, so every module using the guard
-  // imports AuthModule rather than re-registering PassportModule itself.
   exports: [AuthService, JwtModule, PassportModule],
 })
 export class AuthModule {}
