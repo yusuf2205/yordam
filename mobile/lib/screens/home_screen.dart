@@ -48,12 +48,12 @@ class HomeScreen extends StatelessWidget {
                   border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
+                child: const Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text('Напишите или скажите...', style: TextStyle(color: Colors.grey)),
                     ),
-                    const Icon(Icons.mic_none),
+                    Icon(Icons.mic_none),
                   ],
                 ),
               ),

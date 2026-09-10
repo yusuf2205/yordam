@@ -35,10 +35,14 @@ class ChatResult {
 /// native-plugin dependency until `flutter create` has generated the
 /// platform folders.
 class ApiClient {
-  /// Android emulator's alias for the host machine's localhost.
-  /// Point this at the deployed API (e.g. https://api.yordam.uz) for
-  /// anything beyond local development.
-  static const String baseUrl = 'http://10.0.2.2:3000/api';
+  /// The backend runs on the user's own NAS (see deploy/nas/), reachable
+  /// over Tailscale at this MagicDNS hostname on the host port the NAS
+  /// docker-compose stack publishes (3005 -> container's 3000). This is
+  /// NOT localhost/10.0.2.2 — there is nothing running on the dev machine
+  /// itself. A physical device needs Tailscale installed and signed into
+  /// the same tailnet to reach this host; swap for a public URL
+  /// (e.g. https://api.yordam.uz) once one exists.
+  static const String baseUrl = 'http://mynas.tail4bf75c.ts.net:3005/api';
 
   String? _accessToken;
 
