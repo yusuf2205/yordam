@@ -1,12 +1,14 @@
 import {
   ConflictException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
+import { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { hashPassword, verifyPassword } from './password.util.js';
 
 export interface AuthResult {
@@ -50,6 +52,15 @@ export class AuthService {
       throw new UnauthorizedException('Invalid phone or password');
     }
     return this.buildResult(user.id, user.phone, user.name, user.language);
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<void> {
+    const user = await this.usersService.findByPhone(dto.phone);
+    if (!user) {
+      throw new NotFoundException('No account with this phone number');
+    }
+    const passwordHash = await hashPassword(dto.newPassword);
+    await this.usersService.updatePasswordHash(user.id, passwordHash);
   }
 
   private buildResult(

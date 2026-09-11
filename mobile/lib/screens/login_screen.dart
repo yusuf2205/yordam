@@ -47,6 +47,88 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _showResetPasswordDialog() async {
+    final phoneController = TextEditingController(text: _phoneController.text.trim());
+    final newPasswordController = TextEditingController();
+    String? dialogError;
+    bool isSubmitting = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            return AlertDialog(
+              title: const Text('Восстановление пароля'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(labelText: 'Телефон', hintText: '+998901234567'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: newPasswordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'Новый пароль'),
+                  ),
+                  if (dialogError != null) ...[
+                    const SizedBox(height: 12),
+                    Text(dialogError!, style: const TextStyle(color: Colors.red)),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSubmitting ? null : () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Отмена'),
+                ),
+                FilledButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          setDialogState(() {
+                            isSubmitting = true;
+                            dialogError = null;
+                          });
+                          try {
+                            await widget.apiClient.resetPassword(
+                              phone: phoneController.text.trim(),
+                              newPassword: newPasswordController.text,
+                            );
+                            if (!dialogContext.mounted) return;
+                            Navigator.of(dialogContext).pop();
+                            if (!mounted) return;
+                            _phoneController.text = phoneController.text.trim();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Пароль обновлён. Войдите с новым паролем.')),
+                            );
+                          } catch (e) {
+                            setDialogState(() {
+                              dialogError = e.toString();
+                              isSubmitting = false;
+                            });
+                          }
+                        },
+                  child: isSubmitting
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Сохранить'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,6 +192,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         ? 'Уже есть аккаунт? Войти'
                         : 'Нет аккаунта? Зарегистрироваться'),
                   ),
+                  if (!_isRegisterMode)
+                    TextButton(
+                      onPressed: _isLoading ? null : _showResetPasswordDialog,
+                      child: const Text('Забыли пароль?'),
+                    ),
                 ],
               ),
             ),

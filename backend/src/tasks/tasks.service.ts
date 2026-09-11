@@ -43,10 +43,16 @@ export class TasksService {
 
   async update(userId: string, id: string, dto: UpdateTaskDto): Promise<Task> {
     const task = await this.findOneForUser(userId, id);
-    Object.assign(task, {
-      ...dto,
-      dueDate: dto.dueDate ? new Date(dto.dueDate) : task.dueDate,
-    });
+    // Assign fields individually (not via `{ ...dto }` spread) because a
+    // class-validator DTO instance carries every declared property as an
+    // own key, `undefined` for the ones absent from the request body —
+    // spreading it into Object.assign would overwrite untouched columns
+    // (e.g. title, priority) with undefined instead of leaving them as-is.
+    if (dto.title !== undefined) task.title = dto.title;
+    if (dto.description !== undefined) task.description = dto.description;
+    if (dto.status !== undefined) task.status = dto.status;
+    if (dto.priority !== undefined) task.priority = dto.priority;
+    if (dto.dueDate !== undefined) task.dueDate = new Date(dto.dueDate);
     return this.tasksRepository.save(task);
   }
 

@@ -74,6 +74,15 @@ class ApiClient {
     _accessToken = null;
   }
 
+  Future<void> resetPassword({required String phone, required String newPassword}) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/reset-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'phone': phone, 'newPassword': newPassword}),
+    );
+    _decode(response);
+  }
+
   Future<List<YordamTask>> fetchTasks() async {
     final response = await http.get(
       Uri.parse('$baseUrl/tasks'),
@@ -83,6 +92,26 @@ class ApiClient {
     return (data as List<dynamic>)
         .map((item) => YordamTask.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<YordamTask> createTask(String title) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/tasks'),
+      headers: _authHeaders(),
+      body: jsonEncode({'title': title}),
+    );
+    final data = _decode(response);
+    return YordamTask.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<YordamTask> updateTaskStatus(String id, String status) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl/tasks/$id'),
+      headers: _authHeaders(),
+      body: jsonEncode({'status': status}),
+    );
+    final data = _decode(response);
+    return YordamTask.fromJson(data as Map<String, dynamic>);
   }
 
   Future<ChatResult> sendChatMessage(String message, {String? conversationId}) async {
