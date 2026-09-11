@@ -7,6 +7,7 @@ import { AiConversation } from './entities/ai-conversation.entity.js';
 import { AiMessage, AiMessageRole } from './entities/ai-message.entity.js';
 import { CreateTaskTool } from './tools/create-task.tool.js';
 import { CreateReminderTool } from './tools/create-reminder.tool.js';
+import { CreateCalendarEventTool } from './tools/create-calendar-event.tool.js';
 import type { AiTool } from './tools/ai-tool.interface.js';
 
 // Every user is Asia/Tashkent for now — matches Reminder's column default.
@@ -26,8 +27,8 @@ function buildSystemPrompt(): string {
 узбекский или английский). Будь кратким и по делу.
 
 Текущая дата и время пользователя: ${nowInTz} (таймзона ${DEFAULT_TIMEZONE}).
-Когда вызываешь инструменты с датой/временем (например create_reminder),
-всегда указывай remind_at в формате ISO 8601 с корректным смещением UTC для
+Когда вызываешь инструменты с датой/временем (remind_at, start_at, end_at),
+всегда указывай их в формате ISO 8601 с корректным смещением UTC для
 таймзоны ${DEFAULT_TIMEZONE} (сейчас UTC+5), рассчитанным от текущей даты и
 времени выше — не от 1970 года и не без таймзоны.`;
 }
@@ -55,15 +56,16 @@ export class AiService {
     private readonly messagesRepository: Repository<AiMessage>,
     createTaskTool: CreateTaskTool,
     createReminderTool: CreateReminderTool,
+    createCalendarEventTool: CreateCalendarEventTool,
   ) {
     const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
     this.client = apiKey ? new Anthropic({ apiKey }) : null;
     this.model = this.configService.get<string>('AI_MODEL', 'claude-sonnet-5');
 
-    // Future tools (create_calendar_event, create_purchase, save_document,
-    // add_expense, search_products, ...) just get added to this list —
-    // AiService itself doesn't change.
-    const toolList: AiTool[] = [createTaskTool, createReminderTool];
+    // Future tools (create_purchase, save_document, add_expense,
+    // search_products, ...) just get added to this list — AiService itself
+    // doesn't change.
+    const toolList: AiTool[] = [createTaskTool, createReminderTool, createCalendarEventTool];
     this.tools = new Map(toolList.map((tool) => [tool.name, tool]));
   }
 

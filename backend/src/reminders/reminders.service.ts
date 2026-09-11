@@ -27,15 +27,24 @@ export class RemindersService {
     return reminder;
   }
 
-  create(userId: string, dto: CreateReminderDto): Promise<Reminder> {
+  create(
+    userId: string,
+    dto: CreateReminderDto,
+    options: { calendarEventId?: string } = {},
+  ): Promise<Reminder> {
     const reminder = this.remindersRepository.create({
       title: dto.title,
       remindAt: new Date(dto.remindAt),
       timezone: dto.timezone,
       taskId: dto.taskId,
+      calendarEventId: options.calendarEventId,
       userId,
     });
     return this.remindersRepository.save(reminder);
+  }
+
+  findByCalendarEvent(userId: string, calendarEventId: string): Promise<Reminder | null> {
+    return this.remindersRepository.findOne({ where: { userId, calendarEventId } });
   }
 
   async update(userId: string, id: string, dto: UpdateReminderDto): Promise<Reminder> {

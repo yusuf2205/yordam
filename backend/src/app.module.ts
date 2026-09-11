@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { TasksModule } from './tasks/tasks.module.js';
 import { RemindersModule } from './reminders/reminders.module.js';
+import { CalendarModule } from './calendar/calendar.module.js';
 import { AiModule } from './ai/ai.module.js';
 
 @Module({
@@ -37,6 +38,7 @@ import { AiModule } from './ai/ai.module.js';
     AuthModule,
     TasksModule,
     RemindersModule,
+    CalendarModule,
     AiModule,
   ],
   controllers: [AppController],
