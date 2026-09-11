@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/task.dart';
 import '../models/reminder.dart';
+import '../models/calendar_event.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -158,6 +159,45 @@ class ApiClient {
   Future<void> deleteReminder(String id) async {
     final response = await http.delete(
       Uri.parse('$baseUrl/reminders/$id'),
+      headers: _authHeaders(),
+    );
+    _decode(response);
+  }
+
+  Future<List<YordamCalendarEvent>> fetchCalendarEvents() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/calendar-events'),
+      headers: _authHeaders(),
+    );
+    final data = _decode(response);
+    return (data as List<dynamic>)
+        .map((item) => YordamCalendarEvent.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<YordamCalendarEvent> createCalendarEvent({
+    required String title,
+    required DateTime startAt,
+    String? location,
+    int? reminderMinutes,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/calendar-events'),
+      headers: _authHeaders(),
+      body: jsonEncode({
+        'title': title,
+        'startAt': startAt.toUtc().toIso8601String(),
+        if (location != null && location.isNotEmpty) 'location': location,
+        if (reminderMinutes != null) 'reminderMinutes': reminderMinutes,
+      }),
+    );
+    final data = _decode(response);
+    return YordamCalendarEvent.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<void> deleteCalendarEvent(String id) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/calendar-events/$id'),
       headers: _authHeaders(),
     );
     _decode(response);

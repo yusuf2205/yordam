@@ -4,6 +4,7 @@ import '../services/notification_service.dart';
 import 'ai_chat_screen.dart';
 import 'tasks_screen.dart';
 import 'reminders_screen.dart';
+import 'calendar_screen.dart';
 
 /// Main screen, following the mock-up in section 6 of yordam.md: a greeting,
 /// a prominent "Чем помочь?" AI input, today's reminders, and a quick-access
@@ -94,6 +95,13 @@ class HomeScreen extends StatelessWidget {
                         notificationService: notificationService,
                       ),
                     ),
+                  ),
+                ),
+                _QuickAccessTile(
+                  icon: Icons.calendar_month_outlined,
+                  label: 'Календарь',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => CalendarScreen(apiClient: apiClient)),
                   ),
                 ),
                 _QuickAccessTile(
