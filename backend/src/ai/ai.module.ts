@@ -5,16 +5,23 @@ import { AiMessage } from './entities/ai-message.entity.js';
 import { AiService } from './ai.service.js';
 import { AiController } from './ai.controller.js';
 import { CreateTaskTool } from './tools/create-task.tool.js';
+import { CreateReminderTool } from './tools/create-reminder.tool.js';
 import { TasksModule } from '../tasks/tasks.module.js';
+import { RemindersModule } from '../reminders/reminders.module.js';
 import { AuthModule } from '../auth/auth.module.js';
 
 @Module({
   // AuthModule for PassportModule — AiController guards routes with
   // JwtAuthGuard (see auth/auth.module.ts for why this is needed). Note
-  // TasksModule importing AuthModule doesn't re-export it, so AiModule needs
-  // its own import too.
-  imports: [TypeOrmModule.forFeature([AiConversation, AiMessage]), TasksModule, AuthModule],
-  providers: [AiService, CreateTaskTool],
+  // TasksModule/RemindersModule importing AuthModule doesn't re-export it,
+  // so AiModule needs its own import too.
+  imports: [
+    TypeOrmModule.forFeature([AiConversation, AiMessage]),
+    TasksModule,
+    RemindersModule,
+    AuthModule,
+  ],
+  providers: [AiService, CreateTaskTool, CreateReminderTool],
   controllers: [AiController],
 })
 export class AiModule {}

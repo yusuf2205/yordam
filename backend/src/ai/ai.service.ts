@@ -6,14 +6,31 @@ import Anthropic from '@anthropic-ai/sdk';
 import { AiConversation } from './entities/ai-conversation.entity.js';
 import { AiMessage, AiMessageRole } from './entities/ai-message.entity.js';
 import { CreateTaskTool } from './tools/create-task.tool.js';
+import { CreateReminderTool } from './tools/create-reminder.tool.js';
 import type { AiTool } from './tools/ai-tool.interface.js';
 
-const SYSTEM_PROMPT = `Ты — Yordam, цифровой помощник реальной жизни. Твоя задача — не просто
+// Every user is Asia/Tashkent for now — matches Reminder's column default.
+// Real per-user timezone (users.timezone) is never set anywhere yet (no
+// onboarding step collects it); switch this to the user's own value once
+// that exists instead of guessing here.
+const DEFAULT_TIMEZONE = 'Asia/Tashkent';
+
+function buildSystemPrompt(): string {
+  const now = new Date();
+  const nowInTz = now.toLocaleString('sv-SE', { timeZone: DEFAULT_TIMEZONE });
+  return `Ты — Yordam, цифровой помощник реальной жизни. Твоя задача — не просто
 отвечать пользователю, а доводить его проблему до результата: понять запрос,
 при необходимости уточнить детали, и когда пользователь просит что-то сделать
 (задача, поручение, напоминание о деле) — вызвать соответствующий инструмент,
 а не просто описать план словами. Отвечай на языке пользователя (русский,
-узбекский или английский). Будь кратким и по делу.`;
+узбекский или английский). Будь кратким и по делу.
+
+Текущая дата и время пользователя: ${nowInTz} (таймзона ${DEFAULT_TIMEZONE}).
+Когда вызываешь инструменты с датой/временем (например create_reminder),
+всегда указывай remind_at в формате ISO 8601 с корректным смещением UTC для
+таймзоны ${DEFAULT_TIMEZONE} (сейчас UTC+5), рассчитанным от текущей даты и
+времени выше — не от 1970 года и не без таймзоны.`;
+}
 
 const MAX_TOOL_ROUNDS = 4;
 
@@ -37,15 +54,16 @@ export class AiService {
     @InjectRepository(AiMessage)
     private readonly messagesRepository: Repository<AiMessage>,
     createTaskTool: CreateTaskTool,
+    createReminderTool: CreateReminderTool,
   ) {
     const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
     this.client = apiKey ? new Anthropic({ apiKey }) : null;
     this.model = this.configService.get<string>('AI_MODEL', 'claude-sonnet-5');
 
-    // Sprint 1 registers a single tool. Future tools (create_reminder,
-    // create_purchase, save_document, add_expense, search_products, ...)
-    // just get added to this list — AiService itself doesn't change.
-    const toolList: AiTool[] = [createTaskTool];
+    // Future tools (create_calendar_event, create_purchase, save_document,
+    // add_expense, search_products, ...) just get added to this list —
+    // AiService itself doesn't change.
+    const toolList: AiTool[] = [createTaskTool, createReminderTool];
     this.tools = new Map(toolList.map((tool) => [tool.name, tool]));
   }
 
@@ -82,7 +100,7 @@ export class AiService {
       const response = await this.client.messages.create({
         model: this.model,
         max_tokens: 1024,
-        system: SYSTEM_PROMPT,
+        system: buildSystemPrompt(),
         messages,
         tools: Array.from(this.tools.values()).map((tool) => ({
           name: tool.name,

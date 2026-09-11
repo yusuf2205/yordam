@@ -6,6 +6,7 @@ import { AppService } from './app.service.js';
 import { UsersModule } from './users/users.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { TasksModule } from './tasks/tasks.module.js';
+import { RemindersModule } from './reminders/reminders.module.js';
 import { AiModule } from './ai/ai.module.js';
 
 @Module({
@@ -35,6 +36,7 @@ import { AiModule } from './ai/ai.module.js';
     UsersModule,
     AuthModule,
     TasksModule,
+    RemindersModule,
     AiModule,
   ],
   controllers: [AppController],
