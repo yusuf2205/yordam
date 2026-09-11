@@ -7,10 +7,14 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:yordam_mobile/main.dart';
+import 'package:yordam_mobile/services/notification_service.dart';
 
 void main() {
   testWidgets('App boots to the login screen', (WidgetTester tester) async {
-    await tester.pumpWidget(YordamApp());
+    await tester.pumpWidget(YordamApp(notificationService: NotificationService()));
+    // StartupScreen checks for a saved session (no platform channel in
+    // tests, so it fails closed to "logged out") before routing to login.
+    await tester.pumpAndSettle();
 
     expect(find.text('YORDAM'), findsOneWidget);
     expect(find.text('Телефон'), findsOneWidget);

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
+import '../services/notification_service.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final ApiClient apiClient;
-  const LoginScreen({super.key, required this.apiClient});
+  final NotificationService notificationService;
+  const LoginScreen({super.key, required this.apiClient, required this.notificationService});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -38,7 +40,12 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => HomeScreen(apiClient: widget.apiClient)),
+        MaterialPageRoute(
+          builder: (_) => HomeScreen(
+            apiClient: widget.apiClient,
+            notificationService: widget.notificationService,
+          ),
+        ),
       );
     } catch (e) {
       setState(() => _error = e.toString());

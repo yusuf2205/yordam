@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/task.dart';
+import '../models/reminder.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -29,12 +32,13 @@ class ChatResult {
 
 /// Thin wrapper around the Yordam backend REST API (see backend/src).
 ///
-/// The auth token is kept in memory only for this MVP. It should be moved to
-/// secure on-device storage (e.g. flutter_secure_storage) before real users'
-/// tokens are stored on the device — deferred so this module has no
-/// native-plugin dependency until `flutter create` has generated the
-/// platform folders.
+/// The auth token is cached in memory and mirrored to the platform secure
+/// storage (Android Keystore-backed) so the user isn't asked to log in again
+/// every time the app is opened — it only expires when the backend's JWT
+/// does (30 days, see auth.module.ts) or the user explicitly logs out.
 class ApiClient {
+  static const _tokenStorageKey = 'yordam_access_token';
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
   /// The backend runs on the user's own NAS (see deploy/nas/), reachable
   /// over Tailscale at this MagicDNS hostname on the host port the NAS
   /// docker-compose stack publishes (3005 -> container's 3000). This is
@@ -58,7 +62,7 @@ class ApiClient {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'phone': phone, 'password': password, if (name != null) 'name': name}),
     );
-    _handleAuthResponse(response);
+    await _handleAuthResponse(response);
   }
 
   Future<void> login({required String phone, required String password}) async {
@@ -67,11 +71,27 @@ class ApiClient {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'phone': phone, 'password': password}),
     );
-    _handleAuthResponse(response);
+    await _handleAuthResponse(response);
   }
 
-  void logout() {
+  /// Restores a previously saved session, if any. Returns whether a token
+  /// was found — the caller is responsible for verifying it's still valid
+  /// with a real request (e.g. fetchTasks), since the token could have
+  /// expired or been revoked server-side since it was saved.
+  Future<bool> restoreSession() async {
+    // Bounded so a slow/stuck platform keystore never hangs app startup —
+    // falls back to the login screen instead.
+    final token = await _storage
+        .read(key: _tokenStorageKey)
+        .timeout(const Duration(seconds: 5), onTimeout: () => null);
+    if (token == null) return false;
+    _accessToken = token;
+    return true;
+  }
+
+  Future<void> logout() async {
     _accessToken = null;
+    await _storage.delete(key: _tokenStorageKey);
   }
 
   Future<void> resetPassword({required String phone, required String newPassword}) async {
@@ -114,6 +134,35 @@ class ApiClient {
     return YordamTask.fromJson(data as Map<String, dynamic>);
   }
 
+  Future<List<YordamReminder>> fetchReminders() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/reminders'),
+      headers: _authHeaders(),
+    );
+    final data = _decode(response);
+    return (data as List<dynamic>)
+        .map((item) => YordamReminder.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<YordamReminder> createReminder(String title, DateTime remindAt) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/reminders'),
+      headers: _authHeaders(),
+      body: jsonEncode({'title': title, 'remindAt': remindAt.toUtc().toIso8601String()}),
+    );
+    final data = _decode(response);
+    return YordamReminder.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<void> deleteReminder(String id) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/reminders/$id'),
+      headers: _authHeaders(),
+    );
+    _decode(response);
+  }
+
   Future<ChatResult> sendChatMessage(String message, {String? conversationId}) async {
     final response = await http.post(
       Uri.parse('$baseUrl/ai/chat'),
@@ -132,9 +181,10 @@ class ApiClient {
         if (_accessToken != null) 'Authorization': 'Bearer $_accessToken',
       };
 
-  void _handleAuthResponse(http.Response response) {
+  Future<void> _handleAuthResponse(http.Response response) async {
     final data = _decode(response) as Map<String, dynamic>;
     _accessToken = data['accessToken'] as String;
+    await _storage.write(key: _tokenStorageKey, value: _accessToken);
   }
 
   dynamic _decode(http.Response response) {

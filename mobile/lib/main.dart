@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'services/api_client.dart';
-import 'screens/login_screen.dart';
+import 'services/notification_service.dart';
+import 'screens/startup_screen.dart';
 
-void main() {
-  runApp(YordamApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final notificationService = NotificationService();
+  await notificationService.init();
+  runApp(YordamApp(notificationService: notificationService));
 }
 
 class YordamApp extends StatelessWidget {
   final ApiClient apiClient = ApiClient();
+  final NotificationService notificationService;
 
-  YordamApp({super.key});
+  YordamApp({super.key, required this.notificationService});
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +25,7 @@ class YordamApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2F6FED)),
         useMaterial3: true,
       ),
-      home: LoginScreen(apiClient: apiClient),
+      home: StartupScreen(apiClient: apiClient, notificationService: notificationService),
     );
   }
 }

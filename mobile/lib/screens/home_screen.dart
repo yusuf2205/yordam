@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
+import '../services/notification_service.dart';
 import 'ai_chat_screen.dart';
 import 'tasks_screen.dart';
+import 'reminders_screen.dart';
 
 /// Main screen, following the mock-up in section 6 of yordam.md: a greeting,
 /// a prominent "Чем помочь?" AI input, today's reminders, and a quick-access
 /// grid to the other modules.
 class HomeScreen extends StatelessWidget {
   final ApiClient apiClient;
-  const HomeScreen({super.key, required this.apiClient});
+  final NotificationService notificationService;
+  const HomeScreen({super.key, required this.apiClient, required this.notificationService});
 
   String _greeting() {
     final hour = DateTime.now().hour;
@@ -79,6 +82,18 @@ class HomeScreen extends StatelessWidget {
                   label: 'Задачи',
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => TasksScreen(apiClient: apiClient)),
+                  ),
+                ),
+                _QuickAccessTile(
+                  icon: Icons.notifications_outlined,
+                  label: 'Напоминания',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => RemindersScreen(
+                        apiClient: apiClient,
+                        notificationService: notificationService,
+                      ),
+                    ),
                   ),
                 ),
                 _QuickAccessTile(

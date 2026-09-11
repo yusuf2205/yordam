@@ -1,4 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required on Android 13+ to show notifications at all; requested at
+         runtime before scheduling the first reminder notification. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Needed for exact-time reminder delivery (AndroidScheduleMode.exactAllowWhileIdle).
+         Auto-granted at install on Android 12-12L; on Android 13+ it's a
+         special access toggle the user grants via Settings (requested at
+         runtime, see NotificationService). Without this, reminders on some
+         OEM builds (seen on this device's MediaTek/Transsion power
+         management) get silently deferred well past their inexact window. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <!-- So scheduled reminders survive a reboot (ScheduledNotificationBootReceiver
+         below re-arms them) instead of silently vanishing until next app open. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <application
         android:label="yordam_mobile"
         android:name="${applicationName}"
@@ -30,6 +43,22 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- flutter_local_notifications does NOT declare these itself (its
+             own AndroidManifest.xml only carries permissions) — without
+             them, AlarmManager wakes the device for a scheduled reminder but
+             has no receiver to deliver the broadcast to, and the
+             notification silently never appears. See the plugin's README,
+             "Setup" section. -->
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
